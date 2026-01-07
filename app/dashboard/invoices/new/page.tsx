@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Form,
   FormControl,
@@ -17,6 +17,12 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 const formSchema = z.object({
   billingName: z.string().min(2, {
@@ -33,6 +39,7 @@ const formSchema = z.object({
   }).max(160, {
     message: "Description must not be longer than 160 characters.",
   }),
+  status: z.enum(["open", "paid", "void", "uncollectible"]),
 })
 
 export default function NewInvoicePage() {
@@ -45,6 +52,7 @@ export default function NewInvoicePage() {
       billingEmail: "",
       value: 0,
       description: "",
+      status: "open",
     },
   })
 
@@ -70,6 +78,8 @@ export default function NewInvoicePage() {
     router.refresh();
 
   }
+
+  const statuses = ["open", "paid", "void", "uncollectible"] as const;
 
   return (
     <div className="container mx-auto py-10">
@@ -139,6 +149,35 @@ export default function NewInvoicePage() {
                 </FormControl>
                 <FormDescription>
                   A detailed description of the invoice items.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className={buttonVariants({ variant: "outline", className: "w-full text-left uppercase" })}>
+                    {field.value || "Select Status"}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    {statuses.map((status) => (
+                      <DropdownMenuItem
+                        key={status}
+                        onSelect={() => field.onChange(status)}
+                        className="uppercase"
+                      >
+                        {status}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <FormDescription>
+                  The current status of the invoice.
                 </FormDescription>
                 <FormMessage />
               </FormItem>

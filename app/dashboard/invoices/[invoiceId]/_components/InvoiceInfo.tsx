@@ -1,12 +1,16 @@
 "use client"
-import React, { useRef } from 'react'
-import { Badge } from '@/components/ui/badge';
+import React, { useOptimistic, useRef } from 'react'
+import { Badge, badgeVariants } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, DownloadIcon } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { useReactToPrint } from 'react-to-print';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { IconChevronDown } from '@tabler/icons-react';
+import { updateStatus } from '@/app/actions';
+import { toast } from 'sonner';
 
 interface InvoiceInfoProps {
     invoice: {
@@ -24,6 +28,12 @@ interface InvoiceInfoProps {
 
 export default function InvoiceInfo({ invoice, customer }: InvoiceInfoProps) {
     const contentRef = useRef<HTMLDivElement>(null);
+    const [optimisticStatus, addOptimisticStatus] = useOptimistic(
+        invoice.status,
+        (state, newStatus: "open" | "paid" | "void" | "uncollectible") => {
+            return newStatus;
+        }
+    )
 
     const handlePrint = useReactToPrint({
         contentRef: contentRef
@@ -36,13 +46,28 @@ export default function InvoiceInfo({ invoice, customer }: InvoiceInfoProps) {
         uncollectible: "bg-red-100 text-red-800 hover:bg-red-200 border-red-300",
     };
 
+    const handleStatusChange = async (status: "open" | "paid" | "void" | "uncollectible") => {
+        addOptimisticStatus(status);
+        try {
+            await updateStatus(invoice.id, status);
+            toast.success("Status updated successfully");
+        } catch (error) {
+            addOptimisticStatus(invoice.status);
+            toast.error("Failed to update status");
+        }
+    }
+
     return (
         <div className='container mx-auto py-10 max-w-4xl'>
             <div className='mb-6'>
-                <Link href="/dashboard" className="flex items-center text-sm text-gray-500 hover:text-gray-900 transition-colors mb-4">
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Dashboard
-                </Link>
+                <div>
+                    <Link href="/dashboard" className="flex items-center text-sm text-gray-500 hover:text-gray-900 transition-colors mb-4">
+
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        Back to Dashboard
+                    </Link>
+                </div>
+
                 <div className='flex justify-between items-start'>
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">Invoice #{invoice.id}</h1>
@@ -50,9 +75,28 @@ export default function InvoiceInfo({ invoice, customer }: InvoiceInfoProps) {
                             Created on {invoice.createTs.toLocaleDateString()}
                         </p>
                     </div>
-                    <Badge variant={invoice.status === 'paid' ? 'default' : 'secondary'} className={`text-md px-3 p-4  capitalize ${statusColors[invoice.status]}`}>
-                        {invoice.status}
-                    </Badge>
+                    <div>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger className={badgeVariants({ variant: "outline", className: `text-md px-3 py-1 cursor-pointer flex items-center gap-2 capitalize ${statusColors[optimisticStatus]}` })}>
+                                {optimisticStatus} <IconChevronDown className="w-4 h-4" />
+
+
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                {Object.keys(statusColors).map((status) => (
+                                    <DropdownMenuItem
+                                        key={status}
+                                        className='uppercase cursor-pointer'
+                                        onClick={() => handleStatusChange(status as "open" | "paid" | "void" | "uncollectible")}
+                                    >
+                                        {status}
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+
+
+                        </DropdownMenu>
+                    </div>
                 </div>
 
             </div>
@@ -100,9 +144,14 @@ export default function InvoiceInfo({ invoice, customer }: InvoiceInfoProps) {
                         <Button className="w-full" variant="outline" onClick={() => handlePrint()}>
                             <DownloadIcon className='w-4 h-4 mr-2' />
                             Download PDF</Button>
+
                         {invoice.status === 'open' && (
-                            <Button className="w-full">Pay Invoice</Button>
+
+                            <Link href={`/dashboard/invoices/${invoice.id}/payment`}>
+                                <Button className="w-full">Pay Invoice</Button>
+                            </Link>
                         )}
+
                     </div>
                 </div>
             </div>

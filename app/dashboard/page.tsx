@@ -17,6 +17,7 @@ import { desc, eq } from 'drizzle-orm'
 import { currentUser } from '@clerk/nextjs/server'
 import UserSyncer from './_components/UserSyncer'
 import { Badge } from "@/components/ui/badge"
+import Header from "./_components/Header"
 
 export default async function Dashboard() {
   const user = await currentUser();

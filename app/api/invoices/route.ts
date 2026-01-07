@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const body = await req.json();
-  const { billingName, billingEmail, value, description } = body;
+  const { billingName, billingEmail, value, description, status } = body;
 
   let customerId;
 
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     description,
     userId,
     customerId,
-    status: "open",
+    status: status || "open",
   }).returning();
 
 
